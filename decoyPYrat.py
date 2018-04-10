@@ -1,4 +1,4 @@
-#!/software/bin/python3.2
+!/software/bin/python3.2
 #
 #DecoyPYrat - Fast Hybrid Decoy Sequence Database Creation for Proteomic Mass Spectromtery Analyses
 #
@@ -52,6 +52,7 @@ parser.add_argument('--output_fasta', '-o', dest='dout', default='decoy.fa', hel
 parser.add_argument('--temp_file', '-t', dest='tout', default='tmp.fa', help='Set temporary file to write decoys prior to shuffling. Default=tmp.fa')
 parser.add_argument('--no_isobaric', '-i', dest='iso', default=False, action='store_true', help='Do not make decoy peptides isobaric. Default=false')
 parser.add_argument('--memory_save', '-m', dest='mem', default=False, action='store_true', help='Slower but uses less memory (does not store decoy peptide list). Default=false')
+parser.add_argument('--keep_names', '-k', dest='names', default=False, action='store_true', help='Keep sequence names in the decoy output. Default=false')
 args = parser.parse_args()
 
 
@@ -114,6 +115,29 @@ def shuffle(peptide):
 	#return new peptide
 	return ''.join(l) + s 
 	
+def writeseq(args,seq,upeps,dpeps,outfa,pid,dcount):
+	#make sequence isobaric (check args for switch off)
+	if args.iso == False:
+		seq = seq.replace('I', 'L')
+
+	#digest sequence add peptides to set
+	upeps.update( digest(seq, args.csites, args.cpos, args.noc, args.minlen) )
+
+	#reverse and switch protein sequence
+	decoyseq = revswitch(seq, args.noswitch, args.csites)
+
+	#do not store decoy peptide set in reduced memory mode
+	if args.mem == False:
+		#update decoy peptide set
+		dpeps.update( digest(decoyseq, args.csites, args.cpos, args.noc, args.minlen) )
+
+	#write decoy protein accession and sequence to file
+	if args.names:
+		outfa.write('>{}_{}\n'.format(args.dprefix,pid))
+	else:
+		outfa.write('>' + args.dprefix + '_' + str(dcount) + '\n')
+	outfa.write(decoyseq + '\n')
+		
 	
 
 #Create empty sets to add all target and decoy peptides
@@ -121,7 +145,7 @@ upeps = set()
 dpeps = set()
 	
 #Counter for number of decoy sequences
-dcount = 0;	
+dcount = 1;	
 
 #empty protein sequence
 seq = ''	
@@ -132,44 +156,27 @@ outfa = open(args.tout, 'w')
 #Open FASTA file using first cmd line argument
 fasta = open(args.fasta, 'r')
 #loop each line in the file
+pid = ''
 for line in fasta:
 	#if this line starts with ">" then process sequence if not empty
 	if line[0] == '>':
+		oldpid = pid
+		pid = line[1:].rstrip("\n")
 		if seq != '':
-		
-			#make sequence isobaric (check args for switch off)
-			if args.iso == False:
-				seq = seq.replace('I', 'L')
-		
-			#digest sequence add peptides to set
-			upeps.update( digest(seq, args.csites, args.cpos, args.noc, args.minlen) )
-			
-			
-			
-			#reverse and switch protein sequence
-			decoyseq = revswitch(seq, args.noswitch, args.csites)
-			
-			#do not store decoy peptide set in reduced memory mode
-			if args.mem == False:
-				#update decoy peptide set
-				dpeps.update( digest(decoyseq, args.csites, args.cpos, args.noc, args.minlen) )
-			
-			#write decoy protein accession and sequence to file
+			writeseq(args,seq,upeps,dpeps,outfa,oldpid,dcount)
 			dcount += 1
-			outfa.write('>' + args.dprefix + '_' + str(dcount) + '\n')
-			outfa.write(decoyseq + '\n')
-			
+
 		seq = '';
 	
 	#if not accession line then append aa sequence (with no newline or white space) to seq string
 	else:
 		seq+=line.rstrip()
-		
+
+writeseq(args,seq,upeps,dpeps,outfa,pid,dcount)
+
 #Close files
 fasta.close()
 outfa.close()
-
-
 
 #Summarise the numbers of target and decoy peptides and their intersection
 nonDecoys = set()
