@@ -1,5 +1,3 @@
-!/software/bin/python3.2
-#
 #DecoyPYrat - Fast Hybrid Decoy Sequence Database Creation for Proteomic Mass Spectromtery Analyses
 #
 #MIT License
@@ -23,7 +21,6 @@
 #LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
-#
 
 
 #used to get cmd line arguments 
@@ -137,139 +134,141 @@ def writeseq(args,seq,upeps,dpeps,outfa,pid,dcount):
 	else:
 		outfa.write('>' + args.dprefix + '_' + str(dcount) + '\n')
 	outfa.write(decoyseq + '\n')
-		
-	
 
-#Create empty sets to add all target and decoy peptides
-upeps = set()	
-dpeps = set()
-	
-#Counter for number of decoy sequences
-dcount = 1;	
+def main():
+    #Create empty sets to add all target and decoy peptides
+    upeps = set()	
+    dpeps = set()
+            
+    #Counter for number of decoy sequences
+    dcount = 1;	
 
-#empty protein sequence
-seq = ''	
-	
-#open temporary decoy FASTA file
-outfa = open(args.tout, 'w')	
-	
-#Open FASTA file using first cmd line argument
-fasta = open(args.fasta, 'r')
-#loop each line in the file
-pid = ''
-for line in fasta:
-	#if this line starts with ">" then process sequence if not empty
-	if line[0] == '>':
-		oldpid = pid
-		pid = line[1:].rstrip("\n")
-		if seq != '':
-			writeseq(args,seq,upeps,dpeps,outfa,oldpid,dcount)
-			dcount += 1
+    #empty protein sequence
+    seq = ''	
+            
+    #open temporary decoy FASTA file
+    outfa = open(args.tout, 'w')	
+            
+    #Open FASTA file using first cmd line argument
+    fasta = open(args.fasta, 'r')
+    #loop each line in the file
+    pid = ''
+    for line in fasta:
+            #if this line starts with ">" then process sequence if not empty
+            if line[0] == '>':
+                    oldpid = pid
+                    pid = line[1:].rstrip("\n")
+                    if seq != '':
+                            writeseq(args,seq,upeps,dpeps,outfa,oldpid,dcount)
+                            dcount += 1
 
-		seq = '';
-	
-	#if not accession line then append aa sequence (with no newline or white space) to seq string
-	else:
-		seq+=line.rstrip()
+                    seq = '';
+            
+            #if not accession line then append aa sequence (with no newline or white space) to seq string
+            else:
+                    seq+=line.rstrip()
 
-writeseq(args,seq,upeps,dpeps,outfa,pid,dcount)
+    writeseq(args,seq,upeps,dpeps,outfa,pid,dcount)
 
-#Close files
-fasta.close()
-outfa.close()
+    #Close files
+    fasta.close()
+    outfa.close()
 
-#Summarise the numbers of target and decoy peptides and their intersection
-nonDecoys = set()
-print ("proteins:" + str(dcount))
-print ("target peptides:" + str(len(upeps)))
+    #Summarise the numbers of target and decoy peptides and their intersection
+    nonDecoys = set()
+    print ("proteins:" + str(dcount))
+    print ("target peptides:" + str(len(upeps)))
 
-#Reloop decoy file in reduced memory mode to store only intersecting decoys 
-if args.mem:
-	#open temp decoys
-	with open(args.tout, "rt") as fin:
-		for line in fin:
-			#if line is not accession 
-			if line[0] != '>':
-				#digest protein
-				for p in digest(line.rstrip(), args.csites, args.cpos, args.noc, args.minlen):
-					#check if in target peptides if true then add to nonDecoys
-					if p in upeps:
-						nonDecoys.add(p)
-	fin.close()
-	print ("decoy peptides: !Memory Saving Made!")
-else:
-	#can only report total number in normal memory mode
-	print ("decoy peptides:" + str(len(dpeps)))
-	#find intersecting peptides
-	nonDecoys = upeps.intersection(dpeps)
+    #Reloop decoy file in reduced memory mode to store only intersecting decoys 
+    if args.mem:
+            #open temp decoys
+            with open(args.tout, "rt") as fin:
+                    for line in fin:
+                            #if line is not accession 
+                            if line[0] != '>':
+                                    #digest protein
+                                    for p in digest(line.rstrip(), args.csites, args.cpos, args.noc, args.minlen):
+                                            #check if in target peptides if true then add to nonDecoys
+                                            if p in upeps:
+                                                    nonDecoys.add(p)
+            fin.close()
+            print ("decoy peptides: !Memory Saving Made!")
+    else:
+            #can only report total number in normal memory mode
+            print ("decoy peptides:" + str(len(dpeps)))
+            #find intersecting peptides
+            nonDecoys = upeps.intersection(dpeps)
 
-print ("#intersection:" +  str(len(nonDecoys)))
+    print ("#intersection:" +  str(len(nonDecoys)))
 
-#if there are decoy peptides that are in the target peptide set
-if len(nonDecoys) > 0 and args.noshuf == False:
+    #if there are decoy peptides that are in the target peptide set
+    if len(nonDecoys) > 0 and args.noshuf == False:
 
-	#create empty dictionary with bad decoys as keys
-	dAlternative = dict.fromkeys(nonDecoys, '')
-	noAlternative = list()
-	
-	#loop bad decoys / dictionary keys
-	for dPep in dAlternative:
-		i = 0;
-		aPep = dPep
+            #create empty dictionary with bad decoys as keys
+            dAlternative = dict.fromkeys(nonDecoys, '')
+            noAlternative = list()
+            
+            #loop bad decoys / dictionary keys
+            for dPep in dAlternative:
+                    i = 0;
+                    aPep = dPep
 
-		# shuffle until aPep is not in target set (maximum of 10 iterations)
-		while aPep in upeps and i < args.maxit:
-		
-			#increment iteration counter
-			i += 1
-	
-			#shuffle peptide
-			aPep = shuffle(dPep)
-			
-			#check if shuffling has an effect if not end iterations
-			if (aPep == dPep):
-				i=args.maxit
-		
-		#update dictionary with alternative shuffled peptide
-		dAlternative[dPep] = aPep
-		
-		#warn if peptide has no suitable alternative, add to removal list
-		if i == args.maxit:
-			noAlternative.append(dPep)
-		
-	
-	print ( str(len(noAlternative)) + ' have no alternative peptide')
-	#remove peptides with no alternative
-	for p in noAlternative:
-		del dAlternative[p]
-	
-	#Free up memory by clearing large sets of peptides
-	upeps.clear()
-	dpeps.clear()
-	#open second decoy file
-	with open(args.dout, "wt") as fout:
-		#open original decoy file
-		with open(args.tout, "rt") as fin:
-			#loop each line of original decoy fasta
-			for line in fin:
-				#if line is not accession replace peptides in dictionary with alternatives
-				if line[0] != '>':
-					#digest decoy sequence
-					for p in digest(line.rstrip(), args.csites, args.cpos, args.noc, args.minlen):
-						#store decoy peptide for final count
-						dpeps.add(p)
-						
-						#if decoy peptide is in dictionary replace with alternative
-						if p in dAlternative:
-							line = line.replace(p, dAlternative[p])
-					
-				fout.write(line)
-		fin.close()
-	fout.close()
-	
-	#delete temporary file
-	os.remove(args.tout)
-else:
-	os.rename(args.tout, args.dout)
-	
-print ("final decoy peptides:" + str(len(dpeps)))
+                    # shuffle until aPep is not in target set (maximum of 10 iterations)
+                    while aPep in upeps and i < args.maxit:
+                    
+                            #increment iteration counter
+                            i += 1
+            
+                            #shuffle peptide
+                            aPep = shuffle(dPep)
+                            
+                            #check if shuffling has an effect if not end iterations
+                            if (aPep == dPep):
+                                    i=args.maxit
+                    
+                    #update dictionary with alternative shuffled peptide
+                    dAlternative[dPep] = aPep
+                    
+                    #warn if peptide has no suitable alternative, add to removal list
+                    if i == args.maxit:
+                            noAlternative.append(dPep)
+                    
+            
+            print ( str(len(noAlternative)) + ' have no alternative peptide')
+            #remove peptides with no alternative
+            for p in noAlternative:
+                    del dAlternative[p]
+            
+            #Free up memory by clearing large sets of peptides
+            upeps.clear()
+            dpeps.clear()
+            #open second decoy file
+            with open(args.dout, "wt") as fout:
+                    #open original decoy file
+                    with open(args.tout, "rt") as fin:
+                            #loop each line of original decoy fasta
+                            for line in fin:
+                                    #if line is not accession replace peptides in dictionary with alternatives
+                                    if line[0] != '>':
+                                            #digest decoy sequence
+                                            for p in digest(line.rstrip(), args.csites, args.cpos, args.noc, args.minlen):
+                                                    #store decoy peptide for final count
+                                                    dpeps.add(p)
+                                                    
+                                                    #if decoy peptide is in dictionary replace with alternative
+                                                    if p in dAlternative:
+                                                            line = line.replace(p, dAlternative[p])
+                                            
+                                    fout.write(line)
+                    fin.close()
+            fout.close()
+            
+            #delete temporary file
+            os.remove(args.tout)
+    else:
+            os.rename(args.tout, args.dout)
+            
+    print ("final decoy peptides:" + str(len(dpeps)))
+
+if __name__ == "__main__":
+    main()
