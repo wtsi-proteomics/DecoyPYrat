@@ -17,7 +17,11 @@ DecoyPYrat is available in the bioconda bioinformatics software repository. To a
 conda install -c bioconda decoypyrat
 ```
 
-After this, the command "decoypyrat" will be available in your system.
+After this, you can invoke the software like this:
+
+```shell
+decoypyrat
+```
 
 ### Direct script usage
 
@@ -25,6 +29,20 @@ You can clone this repository and invoke the software like this:
 
 ```shell
 python decoypyrat/decoyPYrat.py
+```
+
+### Getting help
+
+You can see the full usage instructions by specifying the "-h" argument:
+
+If installing with Bioconda:
+```shell
+decoypyrat -h
+```
+
+If using the script directly:
+```shell
+python decoypyrat/decoyPYrat.py -h
 ```
 
 ## Citation:
