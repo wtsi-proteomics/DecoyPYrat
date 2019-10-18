@@ -7,7 +7,7 @@ The target-decoy approach has risen to become the de-facto approach to calculati
 
 DecoyPYrat creates decoy protein sequences by following these steps: each protein is reversed and the cleavage sites switched with preceding amino acid. Peptides are checked for existence in target sequences and if found the tool will attempt to shuffle them iterativly until they are unique.
 
-## Download and Installation
+## Download and installation
 
 ### Bioconda
 
