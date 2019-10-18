@@ -46,5 +46,5 @@ python decoypyrat/decoyPYrat.py -h
 ```
 
 ## Citation:
-DecoyPyrat: Fast Non-redundant Hybrid Decoy Sequence Generation for Large Scale Proteomics.
-J Proteomics Bioinform. 2016 Jun 27;9(6):176-180.
+[DecoyPyrat: Fast Non-redundant Hybrid Decoy Sequence Generation for Large Scale Proteomics.
+J Proteomics Bioinform. 2016 Jun 27;9(6):176-180.](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4941923/)
